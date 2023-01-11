@@ -1,0 +1,68 @@
+#!/bin/bash
+# Modified version of https://gist.github.com/mzabriskie/6631607#file-git-status
+
+dir="$1"
+
+# No directory has been provided, use current
+if [ -z "$dir" ]
+then
+    dir="`pwd`"
+fi
+
+# Make sure directory ends with "/"
+if [[ $dir != */ ]]
+then
+	dir="$dir/*"
+else
+	dir="$dir*"
+fi
+
+
+# Loop all sub-directories
+for f in $dir
+do
+	# Only interested in directories
+	[ -d "${f}" ] || continue
+
+  output="\033[0m \033[0;35m ${f} \033[0m"
+  mod=0
+
+	# Check if directory is a git repository
+	if [ -d "$f/.git" ]
+	then
+    untracked="\033[0;31m "
+    modified="\033[0;31m "
+    unpushed="\033[0;31m "
+		cd $f
+
+		# Check for untracked files
+		if [ $(git status | grep Untracked -c) -ne 0 ]
+		then
+      untracked="?"
+      mod=1
+		fi
+
+		# Check for modified files
+		if [ $(git status | grep modified -c) -ne 0 ]
+		then
+      modified="M"
+      mod=1
+		fi
+		
+		# Check for unpushed changes
+		if [ $(git status | grep 'Your branch is ahead' -c) -ne 0 ]
+		then
+      unpushed="U"
+      mod=1
+		fi
+
+    if [ $mod -ne 0 ]
+    then
+      full="\033[0;31m $untracked$modified$unpushed$output"
+      echo -en $full
+      echo
+    fi
+
+		cd ../
+	fi
+done
