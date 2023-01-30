@@ -1,0 +1,64 @@
+#!/bin/bash
+
+BW_ID=''
+S2A_ACCOUNT=''
+AWS_ACCOUNT=''
+
+while getopts ":p:" opt; do
+  case $opt in
+    p)
+      PROFILE="$OPTARG"
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 1
+      ;;
+  esac
+done
+
+BW_SESSION=$(bw unlock | awk 'FNR==4' | cut -d'"' -f 2)
+if [ -z "$BW_SESSION" ];
+then
+  exit 1;
+fi
+
+S2A_MFA_TOKEN=$(bw get totp $BW_ID --session $BW_SESSION)
+if [ -z "$S2A_MFA_TOKEN" ];
+then
+  echo "Could not find saml2aws MFA token."
+  exit 1;
+fi
+
+S2A_USERNAME=$(bw get username $BW_ID --session $BW_SESSION)
+if [ -z "$S2A_USERNAME" ];
+then
+  echo "Could not find saml2aws username."
+  exit 1;
+fi
+
+S2A_PASSWORD=$(bw get password $BW_ID --session $BW_SESSION)
+if [ -z "$S2A_PASSWORD" ];
+then
+  echo "Could not find saml2aws password."
+  exit 1;
+fi
+
+RESPONSE=$(saml2aws login \
+  --force \
+  -a $S2A_ACCOUNT \
+  --role=arn:aws:iam::$AWS_ACCOUNT:role/$PROFILE \
+  --username=$S2A_USERNAME \
+  --password=$S2A_PASSWORD \
+  --mfa-token=$S2A_MFA_TOKEN \
+  --skip-prompt 2>&1)
+
+if [ $? -ne 0 ];
+then
+  echo "Error ($?). Could not log in with saml2aws."
+else
+  echo "$RESPONSE" | awk 'FNR==5';
+fi
