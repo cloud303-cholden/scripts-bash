@@ -24,42 +24,42 @@ do
 	# Only interested in directories
 	[ -d "${f}" ] || continue
 
-  output="\033[0m \033[0;35m ${f} \033[0m"
+  output="\033[0;36m${f}\033[0m"
   mod=0
 
 	# Check if directory is a git repository
 	if [ -d "$f/.git" ]
 	then
-    untracked="\033[0;31m "
-    modified="\033[0;31m "
-    unpushed="\033[0;31m "
+    untracked="  "
+    modified="  "
+    unpushed="  "
 		cd $f
 
 		# Check for untracked files
 		if [ $(git status | grep Untracked -c) -ne 0 ]
 		then
-      untracked="?"
+      untracked="\033[0;31m \033[0m"
       mod=1
 		fi
 
 		# Check for modified files
 		if [ $(git status | grep modified -c) -ne 0 ]
 		then
-      modified="M"
+      modified="\033[0;35m \033[0m"
       mod=1
 		fi
 		
 		# Check for unpushed changes
 		if [ $(git status | grep 'Your branch is ahead' -c) -ne 0 ]
 		then
-      unpushed="U"
+      unpushed="\033[0;32m \033[0m"
       mod=1
 		fi
 
     if [ $mod -ne 0 ]
     then
-      full="\033[0;31m $untracked$modified$unpushed$output"
-      echo -en $full
+      full="${untracked}$modified$unpushed $output"
+      echo -en "$full"
       echo
     fi
 
